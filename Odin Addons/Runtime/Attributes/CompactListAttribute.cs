@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using Sirenix.OdinInspector;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -9,7 +8,7 @@ using Sirenix.OdinInspector.Editor;
 using Sirenix.Utilities.Editor;
 #endif
 
-namespace Sirenix.OdinInspector
+namespace OdinAddons
 {
     /// <summary>
     /// Draws the first item of a list as a one-line property.

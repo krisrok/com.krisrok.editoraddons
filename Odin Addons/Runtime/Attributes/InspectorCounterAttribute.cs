@@ -7,10 +7,10 @@ using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using OdinAddons.StateUpdaters;
 
-[assembly: RegisterStateUpdater(typeof(OdinAddons.StateUpdaters.InspectorCounterStateUpdater), 10000)]
+[assembly: RegisterStateUpdater(typeof(InspectorCounterStateUpdater), 10000)]
 #endif
 
-namespace Sirenix.OdinInspector
+namespace OdinAddons
 {
     /// <summary>
     /// <para>Use the <see cref="InspectorCounterAttribute"/> in conjunction with <see cref="RepaintHelper.RepaintIfVisible(object)"/> to repaint inspectors immediately on change but only when there is at least one inspector window editing your object.</para>

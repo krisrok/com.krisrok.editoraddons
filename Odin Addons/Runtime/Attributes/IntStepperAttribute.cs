@@ -1,13 +1,12 @@
 using System;
 using UnityEngine;
-using Sirenix.OdinInspector;
 
 #if UNITY_EDITOR
 using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 #endif
 
-namespace Sirenix.OdinInspector
+namespace OdinAddons
 {
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class IntStepperAttribute : Attribute

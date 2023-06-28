@@ -1,13 +1,12 @@
 ﻿using System;
 using UnityEngine;
-using Sirenix.OdinInspector;
 
 #if UNITY_EDITOR
 using UnityEditor;
 using Sirenix.OdinInspector.Editor;
 #endif
 
-namespace Sirenix.OdinInspector
+namespace OdinAddons
 {
     /// <summary>
     /// <para>Changes via inspector do not dirty the containing scene or prefab.</para>
