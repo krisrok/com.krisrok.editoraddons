@@ -1,6 +1,6 @@
 {
-    "name": "OdinAddons.Runtime",
-    "rootNamespace": "",
+    "name": "OdinAddons",
+    "rootNamespace": "OdinAddons",
     "references": [
         "GUID:1b6b29427dc85403c316475c7068fc50",
         "GUID:2fb5cf31e708b65c6cd386829ff94feb",

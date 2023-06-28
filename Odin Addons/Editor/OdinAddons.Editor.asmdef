@@ -1,6 +1,6 @@
 {
     "name": "OdinAddons.Editor",
-    "rootNamespace": "",
+    "rootNamespace": "OdinAddons.Editor",
     "references": [
         "GUID:2fb5cf31e708b65c6cd386829ff94feb",
         "GUID:b2621ed9809523852c40dfbc7bd87a56"
