@@ -3,5 +3,11 @@
   "displayName": "Editor Addons \u2042",
   "version": "0.1.0",
   "unity": "2021.3",
-  "description": "A collection of editor-related tools.\n\nSome parts need Odin Inspector."
+  "description": "A collection of editor-related tools.\n\nSome parts need Odin Inspector.",
+  "samples": [
+    {
+      "displayName": "Visual Studio snippets for Odin",
+      "path": "Samples~/VS Snippets for Odin"
+    }
+  ]
 }

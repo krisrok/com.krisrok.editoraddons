@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+      <Title>OdinPropertyWithChangedCallback</Title>
+      <Author>
+      </Author>
+      <Description>
+      </Description>
+      <HelpUrl>
+      </HelpUrl>
+      <Shortcut>odinprop</Shortcut>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal Editable="true">
+          <ID>Property</ID>
+          <ToolTip>Property name</ToolTip>
+          <Default>Property</Default>
+          <Function>
+          </Function>
+        </Literal>
+        <Literal Editable="true">
+          <ID>_backingField</ID>
+          <ToolTip>Backing field name</ToolTip>
+          <Default>_backingField</Default>
+          <Function>
+          </Function>
+        </Literal>
+        <Object Editable="true">
+          <ID>type</ID>
+          <ToolTip>Type</ToolTip>
+          <Default>int</Default>
+          <Function>
+          </Function>
+          <Type>Type</Type>
+        </Object>
+      </Declarations>
+      <Code Language="csharp" Delimiter="$"><![CDATA[[SerializeField, OnValueChanged(nameof($Property$Changed))]
+private $type$ $_backingField$;
+
+public $type$ $Property$
+{
+    get => $_backingField$;
+    set
+    {
+        $_backingField$ = value;
+        $Property$Changed(value);
+    }
+}
+
+private void $Property$Changed($type$ value)
+{
+    /* react to change */
+}]]></Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
