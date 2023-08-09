@@ -62,7 +62,7 @@ namespace AstralByte.Editor
         {
             EditorApplication.delayCall += () =>
             {
-                _IsEnabled = EditorPrefs.GetBool(EnabledToggleMenuPath, true);
+                _IsEnabled = EditorPrefs.GetBool(EnabledToggleMenuPath, false);
 
                 if (_IsEnabled)
                 {
