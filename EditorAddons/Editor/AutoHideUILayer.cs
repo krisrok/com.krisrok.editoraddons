@@ -16,7 +16,6 @@
 
 using UnityEngine;
 using UnityEditor;
-using UnityEngine.UI;
 
 namespace AstralByte.Editor
 {
@@ -85,7 +84,7 @@ namespace AstralByte.Editor
                     _IsShowingUI = activeGameObject != null && activeGameObject.layer == UiLayer;
 
                     Selection.selectionChanged += OnSelectionChanged;
-                    EditorApplication.playmodeStateChanged += OnSelectionChanged;
+                    EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
                 }
             };
         }
@@ -121,13 +120,13 @@ namespace AstralByte.Editor
             if (_IsEnabled)
             {
                 Selection.selectionChanged += OnSelectionChanged;
-                EditorApplication.playmodeStateChanged += OnSelectionChanged;
+                EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
                 OnSelectionChanged();
             }
             else
             {
                 Selection.selectionChanged -= OnSelectionChanged;
-                EditorApplication.playmodeStateChanged -= OnSelectionChanged;
+                EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
                 HideUI();
             }
         }
@@ -144,6 +143,11 @@ namespace AstralByte.Editor
                 ShowUI();
             else
                 HideUI();
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange change)
+        {
+            OnSelectionChanged();
         }
 
         /************************************************************************************************************************/
