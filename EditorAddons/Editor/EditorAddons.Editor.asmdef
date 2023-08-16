@@ -1,6 +1,6 @@
 {
     "name": "EditorAddons.Editor",
-    "rootNamespace": "EditorAddons",
+    "rootNamespace": "EditorAddons.Editor",
     "references": [],
     "includePlatforms": [
         "Editor"
