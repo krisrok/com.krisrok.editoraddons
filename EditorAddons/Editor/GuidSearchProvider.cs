@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEditor.Search;
 using UnityEngine;
 
-namespace HierarchyContext.Editor
+namespace EditorAddons.Editor
 {
     /// <summary>
     /// <para>Searches the hierarchy and assets for GUID.</para>

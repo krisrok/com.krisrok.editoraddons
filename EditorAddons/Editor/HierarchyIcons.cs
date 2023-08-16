@@ -5,7 +5,7 @@ using UnityEditor.SceneManagement;
 using System.Linq;
 using System;
 
-namespace EditorAddons
+namespace EditorAddons.Editor
 {
     [InitializeOnLoad]
     class HierarchyIcons
