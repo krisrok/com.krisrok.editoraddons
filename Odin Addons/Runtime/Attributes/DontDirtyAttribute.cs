@@ -10,7 +10,7 @@ namespace OdinAddons
 {
     /// <summary>
     /// <para>Changes via inspector do not dirty the containing scene or prefab.</para>
-    /// <para>Only works with bool, int, float, string so far.</para>
+    /// <para>Works with bool, int, float, string, Vector3, Vector2.</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public class DontDirtyAttribute : Attribute
@@ -50,10 +50,28 @@ namespace OdinAddons.Drawers
             => EditorGUILayout.IntField(label, value);
     }
 
+    public class DontDirtyDrawerFloat : DontDirtyAttributeDrawer<float>
+    {
+        protected override float DrawProperty(GUIContent label, float value)
+            => EditorGUILayout.FloatField(label, value);
+    }
+
     public class DontDirtyDrawerString : DontDirtyAttributeDrawer<string>
     {
         protected override string DrawProperty(GUIContent label, string value)
             => EditorGUILayout.TextField(label, value);
+    }
+
+    public class DontDirtyDrawerVector3 : DontDirtyAttributeDrawer<Vector3>
+    {
+        protected override Vector3 DrawProperty(GUIContent label, Vector3 value)
+            => EditorGUILayout.Vector3Field(label, value);
+    }
+
+    public class DontDirtyDrawerVector2 : DontDirtyAttributeDrawer<Vector2>
+    {
+        protected override Vector2 DrawProperty(GUIContent label, Vector2 value)
+            => EditorGUILayout.Vector2Field(label, value);
     }
 }
 #endif
