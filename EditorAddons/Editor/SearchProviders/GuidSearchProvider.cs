@@ -112,8 +112,8 @@ namespace EditorAddons.Editor
                     if (IsEqual(guidString, instanceId))
                     {
                         yield return provider.CreateItem(context, r.id, instanceId.ToString().CompareTo(guidString),
-                                r.GetLabel(innerContext, true), "Game Object",
-                                null, gameObject);
+                                r.GetLabel(innerContext, true), "Game Object", r.GetThumbnail(context, true),
+                                gameObject);
 
                         break;
                     }
@@ -126,7 +126,7 @@ namespace EditorAddons.Editor
                         {
                             yield return provider.CreateItem(context, r.id, instanceId.ToString().CompareTo(guidString),
                                 r.GetLabel(innerContext, true), ObjectNames.NicifyVariableName(c.GetType().Name),
-                                null, c);
+                                r.GetThumbnail(context, true), c);
                         }
                         else
                         {
