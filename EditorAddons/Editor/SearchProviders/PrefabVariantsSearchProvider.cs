@@ -43,6 +43,7 @@ namespace EditorAddons.Editor
         private static SearchProvider _projectProvider = null;
         private static SearchProvider _findProvider = null;
         private static int _score;
+        private static SearchContext _innerContext;
 
         [SearchItemProvider]
         internal static SearchProvider CreateProvider()
@@ -108,8 +109,9 @@ namespace EditorAddons.Editor
             // find prefab asset, match name or path
             GameObject selectedPrefab = null;
             SearchItem selectedSearchItem = null;
-            using (var innerContext = SearchService.CreateContext(_projectProvider, $"t:prefab"))
-            using (var results = SearchService.Request(innerContext))
+            GameObject basePrefab = null;
+            using (_innerContext = SearchService.CreateContext(_projectProvider, $"*.prefab"))
+            using (var results = SearchService.Request(_innerContext, SearchFlags.WantsMore | SearchFlags.HidePanels))
             {
                 foreach (var r in results)
                 {
@@ -120,20 +122,38 @@ namespace EditorAddons.Editor
                     }
 
                     var gameObject = r.ToObject<GameObject>();
+                    if(gameObject == null)
+                    {
+                        yield return null;
+                        continue;
+                    }
+
+                    //Debug.Log(gameObject.name);
+
                     if (gameObject.name.Equals(searchString, StringComparison.OrdinalIgnoreCase) ||
                         SearchUtils.GetAssetPath(r).Equals(searchString, StringComparison.OrdinalIgnoreCase))
                     {
                         selectedPrefab = gameObject;
 
-                        // create a search item just in case we're already at the base prefab
-                        selectedSearchItem = _projectProvider.CreateItem(
-                                        innerContext,
-                                        r.id,
-                                        0,
-                                        r.GetLabel(innerContext),
-                                        r.GetDescription(innerContext),
-                                        r.GetThumbnail(innerContext),
-                                        AssetDatabase.GetAssetPath(selectedPrefab));
+                        // get base prefab
+                        basePrefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(selectedPrefab);
+
+                        if (basePrefab == selectedPrefab)
+                        {
+                            // create a search item
+                            selectedSearchItem = provider.CreateItem(
+                                            _innerContext,
+                                            r.id,
+                                            0,
+                                            r.GetLabel(_innerContext),
+                                            r.GetDescription(_innerContext),
+                                            r.GetThumbnail(_innerContext),
+                                            AssetDatabase.GetAssetPath(selectedPrefab));
+
+                            MarkSelected(selectedSearchItem);
+
+                            yield return selectedSearchItem;
+                        }
                         break;
                     }
 
@@ -144,23 +164,14 @@ namespace EditorAddons.Editor
             if (selectedPrefab == null)
                 yield break;
 
-            // get base prefab
-            var basePrefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(selectedPrefab);
-
-            // if this was already the base, just use the item created above
-            if (basePrefab == selectedPrefab)
-            {
-                MarkSelected(selectedSearchItem);
-                yield return selectedSearchItem;
-            }
             // if selected prefab was not the base prefab, get the base prefab's search item (to easily get label, thumbnail etc)
-            else
+            if (basePrefab != selectedPrefab)
             {
                 if (_findProvider == null)
                     _findProvider = SearchService.GetProvider("find");
 
                 using (var innerContext = SearchService.CreateContext(_findProvider, $"find:" + AssetDatabase.GetAssetPath(basePrefab)))
-                using (var results = SearchService.Request(innerContext))
+                using (var results = SearchService.Request(innerContext, SearchFlags.WantsMore | SearchFlags.HidePanels))
                 {
                     foreach (var r in results)
                     {
@@ -207,8 +218,8 @@ namespace EditorAddons.Editor
         private static IEnumerable<SearchItem> FindChildItems(GameObject basePrefab, GameObject selectedPrefab, SearchContext context, SearchProvider provider, int maxDepth = -1, int depth = 1)
         {
             string indent = string.Concat(Enumerable.Range(0, depth).Select(_ => "    "));
-            using (var innerContext = SearchService.CreateContext(_projectProvider, $"t:prefab prefab:variant"))
-            using (var results = SearchService.Request(innerContext))
+            //using (var innerContext = SearchService.CreateContext(_projectProvider, $"*.prefab"))
+            using (var results = SearchService.Request(_innerContext, SearchFlags.WantsMore | SearchFlags.HidePanels))
             {
                 foreach (var r in results)
                 {
@@ -218,6 +229,11 @@ namespace EditorAddons.Editor
                         continue;
                     }
                     var obj = r.ToObject<GameObject>();
+                    if(obj == null)
+                    {
+                        yield return null;
+                        continue;
+                    }
                     var parent = PrefabUtility.GetCorrespondingObjectFromSource(obj);
                     if (parent == basePrefab)
                     {
@@ -225,9 +241,9 @@ namespace EditorAddons.Editor
                             context,
                             r.id,
                             _score++,
-                            indent + "↳ " + r.GetLabel(innerContext),
-                            indent + r.GetDescription(innerContext, true),
-                            r.GetThumbnail(innerContext),
+                            indent + "↳ " + r.GetLabel(_innerContext),
+                            indent + r.GetDescription(_innerContext, true),
+                            r.GetThumbnail(_innerContext),
                             AssetDatabase.GetAssetPath(obj));
 
                         if (obj == selectedPrefab)
