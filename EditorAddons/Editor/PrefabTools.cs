@@ -14,36 +14,13 @@ namespace EditorAddons.Editor
             if (prefabStage == null)
                 return;
 
-            //var overrides = PrefabUtility.GetObjectOverrides(prefabStage.prefabContentsRoot, true);
-            //var to = overrides.Where(o => o.instanceObject == prefabStage.prefabContentsRoot.transform || o.instanceObject == prefabStage.prefabContentsRoot.GetComponent<RectTransform>()).ToList();
-            //PrefabUtility.RevertObjectOverride(prefabStage.prefabContentsRoot.transform, InteractionMode.UserAction);
-            //PrefabUtility.RevertObjectOverride(prefabStage.prefabContentsRoot.GetComponent<RectTransform>(), InteractionMode.UserAction);
-
-            //var so = new SerializedObject(prefabStage.prefabContentsRoot.GetComponent<RectTransform>());
-            //var prop = so.FindProperty("m_sizeDelta");
-            //PrefabUtility.RevertPropertyOverride(prop, InteractionMode.UserAction);
-
             var transform = prefabStage.prefabContentsRoot.transform;
-            var rectTransform = transform.GetComponent<RectTransform>();
 
-            var originalTransform = PrefabUtility.GetCorrespondingObjectFromSource(transform);
-
-            var mods = PrefabUtility.GetPropertyModifications(prefabStage.prefabContentsRoot.transform);
-            var transformMods = mods
-                .Where(pm => pm.target == originalTransform)
-                .ToList();
-
-            transformMods.ForEach(p =>
-            {
-                var so = new SerializedObject(transform);
-                var prop = so.FindProperty(p.propertyPath);
-                PrefabUtility.RevertPropertyOverride(prop, InteractionMode.UserAction);
-                so.Dispose();
-            });
+            RevertPropertyModifications(transform);
         }
 
         [MenuItem("Tools/Prefabs/Revert Prefab Root Transform", isValidateFunction: true)]
-        public static bool CanDoStuff()
+        private static bool CanRevertPrefabRootTransform()
         {
             var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
             return prefabStage != null;
@@ -117,6 +94,48 @@ namespace EditorAddons.Editor
                 }
             }
             return _prefabPaths.ToArray();
+        }
+
+        /// <summary>
+        /// Reverts all property modifications (aka overrides) found on this GameObject.
+        /// Does not include child GameObjects and their Components.
+        /// </summary>
+        /// <param name="gameObject"></param>
+        public static void RevertAllPropertyModifications(GameObject gameObject)
+        {
+            var mods = PrefabUtility.GetPropertyModifications(gameObject);
+
+            foreach (var component in gameObject.GetComponents<Component>())
+            {
+                RevertPropertyModifications(component, mods);
+            }
+        }
+
+        /// <summary>
+        /// Reverts all property modifications (aka overrides) on a specific 
+        /// </summary>
+        /// <param name="gameObject"></param>
+        /// <param name="component"></param>
+        public static void RevertPropertyModifications(Component component)
+        {
+            var mods = PrefabUtility.GetPropertyModifications(component.gameObject);
+
+            RevertPropertyModifications(component, mods);
+        }
+
+        private static void RevertPropertyModifications(Component component, PropertyModification[] mods)
+        {
+            var prefabComp = PrefabUtility.GetCorrespondingObjectFromSource(component);
+            using var so = new SerializedObject(component);
+
+            foreach (var compMod in mods.Where(pm => pm.target == prefabComp))
+            {
+                var prop = so.FindProperty(compMod.propertyPath);
+                PrefabUtility.RevertPropertyOverride(prop, InteractionMode.AutomatedAction);
+            }
+
+            so.UpdateIfRequiredOrScript();
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }
