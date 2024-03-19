@@ -52,11 +52,11 @@ namespace OdinAddons.Editor
                 .ToList();
         }
 
-        protected override void OnGUI()
+        protected override void OnImgGUI()
         {
             EditorGUILayout.HelpBox(new GUIContent("Searches for hidden root level GameObjects"));
 
-            base.OnGUI();
+            base.OnImgGUI();
         }
     }
 }
