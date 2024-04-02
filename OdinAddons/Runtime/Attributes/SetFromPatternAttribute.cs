@@ -93,6 +93,30 @@ namespace OdinAddons
 
                     return t.name;
                 }
+            },
+            {
+                new Regex(@"({(INDEX|I)(?<Parent>\.PARENT|\^)*(?<Offset>[\+-]\d+)(?<Format>:.*?)?})", _defaultOptions),
+                (replaceMatch, context, userData) =>
+                {
+                    var t = context.transform;
+
+                    for(var i=0;i<replaceMatch.Groups["Parent"].Captures.Count;i++)
+                        t = t.parent;
+
+                    var index = t.GetSiblingIndex();
+
+                    if(replaceMatch.Groups["Offset"].Success)
+                    {
+                        index += int.Parse(replaceMatch.Groups["Offset"].Value);
+                    }
+
+                    if(replaceMatch.Groups["Format"].Success)
+                    {
+                        return index.ToString(replaceMatch.Groups["Format"].Value.Substring(1));
+                    }
+
+                    return index.ToString();
+                }
             }
         };
     }
