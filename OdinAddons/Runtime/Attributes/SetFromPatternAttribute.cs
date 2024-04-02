@@ -67,7 +67,7 @@ namespace OdinAddons
         {
             var match = Regex.Match(input, pattern);
             if (match.Success == false)
-                throw new ArgumentException("Regex pattern does not match");
+                throw new ArgumentException($"Regex pattern ({pattern}) does not match input ({input})");
 
             return match.Groups.Skip(1).Select(g => g.Value);
         }
