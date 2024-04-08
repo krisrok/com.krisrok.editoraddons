@@ -95,7 +95,7 @@ namespace OdinAddons
                 }
             },
             {
-                new Regex(@"({(INDEX|I)(?<Parent>\.PARENT|\^)*(?<Offset>[\+-]\d+)(?<Format>:.*?)?})", _defaultOptions),
+                new Regex(@"({(INDEX|I)(?<Parent>\.PARENT|\^)*(?<Offset>[\+-]\d+)?(?<Format>:.*?)?})", _defaultOptions),
                 (replaceMatch, context, userData) =>
                 {
                     var t = context.transform;
