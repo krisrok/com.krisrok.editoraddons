@@ -41,6 +41,47 @@ namespace EditorAddons.Editor
             action = (T)Delegate.CreateDelegate(typeof(T), methodInfo);
         }
 
+        public interface IDriver: IDisposable
+        {
+            void RegisterProperties(Object target, params string[] propertyPaths);
+            void UnregisterProperties(Object target, params string[] propertyPaths);
+        }
+
+        public class Driver : ScriptableObject, IDriver
+        {
+            private bool _disposed;
+
+            public void Dispose()
+            {
+                if (_disposed)
+                    return;
+
+                _disposed = true;
+
+                if (Application.isPlaying)
+                    ScriptableObject.Destroy(this);
+                else
+                    ScriptableObject.DestroyImmediate(this);
+            }
+
+            public void RegisterProperties(Object target, params string[] propertyPaths)
+            {
+                foreach (var propertyPath in propertyPaths)
+                    _registerPropertyAction(this, target, propertyPath);
+            }
+
+            public void UnregisterProperties(Object target, params string[] propertyPaths)
+            {
+                foreach (var propertyPath in propertyPaths)
+                    _unregisterPropertyAction(this, target, propertyPath);
+            }
+        }
+
+        public static IDriver CreateDriver()
+        {
+            return ScriptableObject.CreateInstance<Driver>();
+        }
+
         public static RegistrationToken RegisterProperties(Object driver, Object target, params string[] propertyPaths)
         {
             foreach (var propertyPath in propertyPaths)
