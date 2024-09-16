@@ -45,6 +45,15 @@ namespace EditorAddons.Editor
         private static int _score;
         private static SearchContext _innerContext;
 
+        private static List<stuff> _stuff = new List<stuff>();
+        private class stuff
+        {
+            public SearchItem r;
+            public GameObject PrefabParent;
+            public GameObject Prefab;
+            internal GameObject PrefabBase;
+        }
+
         [SearchItemProvider]
         internal static SearchProvider CreateProvider()
         {
@@ -105,11 +114,12 @@ namespace EditorAddons.Editor
 
             var searchString = string.Join(" ", context.searchWords).Trim().ToLowerInvariant();
             _score = 1;
+            _stuff = new List<stuff>();
 
             // find prefab asset, match name or path
             GameObject selectedPrefab = null;
             SearchItem selectedSearchItem = null;
-            GameObject basePrefab = null;
+            GameObject selectedBasePrefab = null;
             using (_innerContext = SearchService.CreateContext(_projectProvider, $"*.prefab"))
             using (var results = SearchService.Request(_innerContext, SearchFlags.WantsMore | SearchFlags.HidePanels))
             {
@@ -128,17 +138,24 @@ namespace EditorAddons.Editor
                         continue;
                     }
 
+                    var parentPrefab = PrefabUtility.GetCorrespondingObjectFromSource(gameObject);
+                    var basePrefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(gameObject);
+                    _stuff.Add(new stuff
+                    {
+                        Prefab = gameObject,
+                        PrefabParent = parentPrefab,
+                        PrefabBase = basePrefab,
+                        r = r
+                    });
+
                     //Debug.Log(gameObject.name);
 
                     if (gameObject.name.Equals(searchString, StringComparison.OrdinalIgnoreCase) ||
                         SearchUtils.GetAssetPath(r).Equals(searchString, StringComparison.OrdinalIgnoreCase))
                     {
                         selectedPrefab = gameObject;
-
-                        // get base prefab
-                        basePrefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(selectedPrefab);
-
-                        if (basePrefab == selectedPrefab)
+                        selectedBasePrefab = basePrefab;
+                        if (selectedBasePrefab == selectedPrefab)
                         {
                             // create a search item
                             selectedSearchItem = provider.CreateItem(
@@ -154,7 +171,6 @@ namespace EditorAddons.Editor
 
                             yield return selectedSearchItem;
                         }
-                        break;
                     }
 
                     yield return null;
@@ -165,12 +181,12 @@ namespace EditorAddons.Editor
                 yield break;
 
             // if selected prefab was not the base prefab, get the base prefab's search item (to easily get label, thumbnail etc)
-            if (basePrefab != selectedPrefab)
+            if (selectedBasePrefab != selectedPrefab)
             {
                 if (_findProvider == null)
                     _findProvider = SearchService.GetProvider("find");
 
-                using (var innerContext = SearchService.CreateContext(_findProvider, $"find:" + AssetDatabase.GetAssetPath(basePrefab)))
+                using (var innerContext = SearchService.CreateContext(_findProvider, $"find:" + AssetDatabase.GetAssetPath(selectedBasePrefab)))
                 using (var results = SearchService.Request(innerContext, SearchFlags.WantsMore | SearchFlags.HidePanels))
                 {
                     foreach (var r in results)
@@ -190,7 +206,7 @@ namespace EditorAddons.Editor
                                         r.GetLabel(innerContext),
                                         r.GetDescription(innerContext),
                                         r.GetThumbnail(innerContext),
-                                        AssetDatabase.GetAssetPath(basePrefab));
+                                        AssetDatabase.GetAssetPath(selectedBasePrefab));
                         break;
                     }
                 }
@@ -199,7 +215,7 @@ namespace EditorAddons.Editor
             var maxDepth = GetMaxDepth(context);
 
             // recursively look for children
-            foreach (var childItem in FindChildItems(basePrefab, selectedPrefab, context, provider, maxDepth))
+            foreach (var childItem in FindChildItems(selectedBasePrefab, selectedPrefab, context, provider, maxDepth))
                 yield return childItem;
         }
 
@@ -215,50 +231,75 @@ namespace EditorAddons.Editor
             return -1;
         }
 
-        private static IEnumerable<SearchItem> FindChildItems(GameObject basePrefab, GameObject selectedPrefab, SearchContext context, SearchProvider provider, int maxDepth = -1, int depth = 1)
+        private static IEnumerable<SearchItem> FindChildItems(GameObject prefab, GameObject selectedPrefab, SearchContext context, SearchProvider provider, int maxDepth = -1, int depth = 1)
         {
             string indent = string.Concat(Enumerable.Range(0, depth).Select(_ => "    "));
-            //using (var innerContext = SearchService.CreateContext(_projectProvider, $"*.prefab"))
-            using (var results = SearchService.Request(_innerContext, SearchFlags.WantsMore | SearchFlags.HidePanels))
+
+            foreach (var s in _stuff)
             {
-                foreach (var r in results)
+                if(s.PrefabParent == prefab)
                 {
-                    if (r == null)
-                    {
-                        yield return null;
-                        continue;
-                    }
-                    var obj = r.ToObject<GameObject>();
-                    if(obj == null)
-                    {
-                        yield return null;
-                        continue;
-                    }
-                    var parent = PrefabUtility.GetCorrespondingObjectFromSource(obj);
-                    if (parent == basePrefab)
-                    {
-                        var searchItem = provider.CreateItem(
+                    var r = s.r;
+                    var searchItem = provider.CreateItem(
                             context,
                             r.id,
                             _score++,
                             indent + "↳ " + r.GetLabel(_innerContext),
                             indent + r.GetDescription(_innerContext, true),
                             r.GetThumbnail(_innerContext),
-                            AssetDatabase.GetAssetPath(obj));
+                            AssetDatabase.GetAssetPath(s.Prefab));
 
-                        if (obj == selectedPrefab)
-                            MarkSelected(searchItem);
+                    yield return searchItem;
 
-                        yield return searchItem;
-
-                        if (maxDepth == -1 || depth < maxDepth)
-                        {
-                            foreach (var childItem in FindChildItems(obj, selectedPrefab, context, provider, maxDepth, depth + 1))
-                                yield return childItem;
-                        }
+                    if (maxDepth == -1 || depth < maxDepth)
+                    {
+                        foreach (var childItem in FindChildItems(s.Prefab, selectedPrefab, context, provider, maxDepth, depth + 1))
+                            yield return childItem;
                     }
                 }
             }
+            //string indent = string.Concat(Enumerable.Range(0, depth).Select(_ => "    "));
+            ////using (var innerContext = SearchService.CreateContext(_projectProvider, $"*.prefab"))
+            //using (var results = SearchService.Request(_innerContext, SearchFlags.WantsMore | SearchFlags.HidePanels))
+            //{
+            //    foreach (var r in results)
+            //    {
+            //        if (r == null)
+            //        {
+            //            yield return null;
+            //            continue;
+            //        }
+            //        var obj = r.ToObject<GameObject>();
+            //        if(obj == null)
+            //        {
+            //            yield return null;
+            //            continue;
+            //        }
+            //        var parent = PrefabUtility.GetCorrespondingObjectFromSource(obj);
+            //        if (parent == basePrefab)
+            //        {
+            //            var searchItem = provider.CreateItem(
+            //                context,
+            //                r.id,
+            //                _score++,
+            //                indent + "↳ " + r.GetLabel(_innerContext),
+            //                indent + r.GetDescription(_innerContext, true),
+            //                r.GetThumbnail(_innerContext),
+            //                AssetDatabase.GetAssetPath(obj));
+
+            //            if (obj == selectedPrefab)
+            //                MarkSelected(searchItem);
+
+            //            yield return searchItem;
+
+            //            if (maxDepth == -1 || depth < maxDepth)
+            //            {
+            //                foreach (var childItem in FindChildItems(obj, selectedPrefab, context, provider, maxDepth, depth + 1))
+            //                    yield return childItem;
+            //            }
+            //        }
+            //    }
+            //}
         }
 
         private static void MarkSelected(SearchItem searchItem)
