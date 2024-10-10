@@ -1,3 +1,4 @@
+#if ODIN_INSPECTOR_3_2
 using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using System;
@@ -60,3 +61,4 @@ namespace OdinAddons.Editor
         }
     }
 }
+#endif

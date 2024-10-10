@@ -13,7 +13,7 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [
-        "ODIN_INSPECTOR"
+        "ODIN_INSPECTOR_3_1"
     ],
     "versionDefines": [],
     "noEngineReferences": false
