@@ -1,7 +1,7 @@
 {
   "name": "com.krisrok.editoraddons",
   "displayName": "Editor Addons \u2042",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "unity": "2021.3",
   "description": "A collection of editor-related tools.\n\nSome parts need Odin Inspector (3.2+).",
   "samples": [
