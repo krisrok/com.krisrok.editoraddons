@@ -29,11 +29,35 @@ namespace EditorAddons.Editor
 
         static HierarchyIcons()
         {
-            _objectIconDrawer ??= new ObjectIconHierarchyIconDrawer();
-            RegisterDrawer(_objectIconDrawer);
+            HierarchyIconsSettings.Instance.Changed += ApplySettings;
+            ApplySettings();
+        }
 
-            _activeToggleDrawer ??= new ActiveToggleHierarchyIconDrawer();
-            RegisterDrawer(_activeToggleDrawer);
+        private static void ApplySettings()
+        {
+            var settings = HierarchyIconsSettings.Instance;
+
+            if (settings.DrawObjectIcon)
+            {
+                _objectIconDrawer ??= new ObjectIconHierarchyIconDrawer();
+                RegisterDrawer(_objectIconDrawer);
+            }
+            else if (_objectIconDrawer != null)
+            {
+                UnregisterDrawer(_objectIconDrawer);
+                _objectIconDrawer = null;
+            }
+
+            if (settings.DrawActiveToggle)
+            {
+                _activeToggleDrawer ??= new ActiveToggleHierarchyIconDrawer();
+                RegisterDrawer(_activeToggleDrawer);
+            }
+            else if (_activeToggleDrawer != null)
+            {
+                UnregisterDrawer(_activeToggleDrawer);
+                _activeToggleDrawer = null;
+            }
         }
 
         static void EditorApplication_hierarchyWindowItemOnGUI(int instanceID, Rect selectionRect)
