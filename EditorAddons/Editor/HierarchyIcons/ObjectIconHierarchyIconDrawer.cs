@@ -10,15 +10,15 @@ namespace EditorAddons.Editor
 
         public DrawerAlignment Alignment => DrawerAlignment.Left;
         public int Priority => 100;
-        public float Size => DefaultIconWidth;
+        public float MinWidth => DefaultIconWidth;
 
-        public void Draw(Rect rect, GameObject go)
+        public Rect Draw(Rect rect, GameObject go)
         {
             var mr = new Rect(rect);
             mr.x -= 200;
             mr.width += 400;
             if (mr.Contains(Event.current.mousePosition))
-                return;
+                return rect;
 
             var img = EditorGUIUtility.ObjectContent(go, go.GetType()).image;
             if (img.ToString() != defaultIconName)
@@ -26,6 +26,8 @@ namespace EditorAddons.Editor
                 var r = rect;
                 GUI.Label(r, img);
             }
+
+            return rect;
         }
     }
 }

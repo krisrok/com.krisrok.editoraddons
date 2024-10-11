@@ -11,9 +11,9 @@ namespace EditorAddons.Editor
     {
         public DrawerAlignment Alignment => DrawerAlignment.Right;
         public int Priority => 100;
-        public float Size => DefaultIconWidth;
+        public float MinWidth => DefaultIconWidth;
 
-        public void Draw(Rect rect, GameObject go)
+        public Rect Draw(Rect rect, GameObject go)
         {
             var wasActive = go.activeSelf;
             var isActive = GUI.Toggle(rect, wasActive, "");
@@ -37,6 +37,8 @@ namespace EditorAddons.Editor
                 if (EditorApplication.isPlaying == false)
                     EditorSceneManager.MarkSceneDirty(go.scene);
             }
+
+            return rect;
         }
 
         private static void SetActiveAndDirty(GameObject go, bool isActive)

@@ -1,43 +1,48 @@
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 namespace EditorAddons.Editor
 {
     [InitializeOnLoad]
     public partial class HierarchyIcons
     {
-        public enum DrawerAlignment { Left, Right }
+        public enum DrawerAlignment { Left, Right, AfterLabel }
 
         public interface IDrawer
         {
             DrawerAlignment Alignment { get; }
             int Priority { get; }
-            float Size { get; }
-            void Draw(Rect rect, GameObject go);
+            float MinWidth { get; }
+            Rect Draw(Rect rect, GameObject go);
         }
 
         public const float DefaultIconWidth = 15;
 
-        private static readonly Dictionary<DrawerAlignment, List<IDrawer>> _drawers = new Dictionary<DrawerAlignment, List<IDrawer>>();
-
+        private static readonly List<IDrawer> _drawers = new List<IDrawer>();
+        private static readonly Dictionary<DrawerAlignment, List<IDrawer>> _drawerAlignmentMap = new Dictionary<DrawerAlignment, List<IDrawer>>();
+        
+        private static ObjectIconHierarchyIconDrawer _objectIconDrawer;
+        private static ActiveToggleHierarchyIconDrawer _activeToggleDrawer;
+        private static bool _hasRegisteredListener;
 
         static HierarchyIcons()
         {
-            EditorApplication.hierarchyWindowItemOnGUI += EditorApplication_hierarchyWindowItemOnGUI;
+            _objectIconDrawer ??= new ObjectIconHierarchyIconDrawer();
+            RegisterDrawer(_objectIconDrawer);
 
-            RegisterDrawer(new ActiveToggleHierarchyIconDrawer());
-            RegisterDrawer(new ObjectIconHierarchyIconDrawer());
+            _activeToggleDrawer ??= new ActiveToggleHierarchyIconDrawer();
+            RegisterDrawer(_activeToggleDrawer);
         }
 
         static void EditorApplication_hierarchyWindowItemOnGUI(int instanceID, Rect selectionRect)
         {
             //UpdateMouseHover(instanceID, selectionRect);
-
             GameObject go = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
             if (go == null)
                 return;
-            
+
             DrawDrawers(selectionRect, go);
         }
 
@@ -45,45 +50,68 @@ namespace EditorAddons.Editor
         {
             DrawRightDrawers(rect, go);
             DrawLeftDrawers(rect, go);
+            DrawAfterLabelDrawers(rect, go);
         }
 
         private static void DrawRightDrawers(Rect rect, GameObject go)
         {
-            if (_drawers.TryGetValue(DrawerAlignment.Right, out var rightDrawers) == false)
+            if (_drawerAlignmentMap.TryGetValue(DrawerAlignment.Right, out var drawers) == false || _drawerAlignmentMap.Count == 0)
                 return;
 
-            foreach (var drawer in rightDrawers)
+            foreach (var drawer in drawers)
             {
                 var drawerRect = rect;
-                drawerRect.x = drawerRect.width - drawer.Size + drawerRect.x;
-                drawerRect.width = drawer.Size;
-                rect.xMax = drawerRect.xMin;
+                drawerRect.x = drawerRect.width - drawer.MinWidth + drawerRect.x;
+                drawerRect.width = drawer.MinWidth;
 
-                drawer.Draw(drawerRect, go);
+                var usedRect = drawer.Draw(drawerRect, go);
+                rect.xMax = usedRect.xMin;
             }
         }
 
         private static void DrawLeftDrawers(Rect rect, GameObject go)
         {
-            if (_drawers.TryGetValue(DrawerAlignment.Left, out var leftDrawers) == false)
+            if (_drawerAlignmentMap.TryGetValue(DrawerAlignment.Left, out var drawers) == false || _drawerAlignmentMap.Count == 0)
                 return;
 
-            rect.x -= 59;
+            rect.x = 0;
 
-            foreach (var drawer in leftDrawers)
+            foreach (var drawer in drawers)
             {
                 var drawerRect = rect;
-                drawerRect.width = drawer.Size;
-                rect.xMin = drawerRect.xMax;
+                drawerRect.width = drawer.MinWidth;
 
-                drawer.Draw(drawerRect, go);
+                var usedRect = drawer.Draw(drawerRect, go);
+                rect.xMin = usedRect.xMax;
+            }
+        }
+
+        private static void DrawAfterLabelDrawers(Rect rect, GameObject go)
+        {
+            if (_drawerAlignmentMap.TryGetValue(DrawerAlignment.AfterLabel, out var drawers) == false || _drawerAlignmentMap.Count == 0)
+                return;
+
+            rect.xMin += 16 + EditorStyles.largeLabel.CalcSize(new GUIContent(go.name)).x;
+
+            foreach (var drawer in drawers)
+            {
+                var drawerRect = rect;
+                drawerRect.width = drawer.MinWidth;
+
+                var usedRect = drawer.Draw(drawerRect, go);
+                rect.xMin = usedRect.xMax;
             }
         }
 
         public static void RegisterDrawer(IDrawer drawer)
         {
-            if (_drawers.TryGetValue(drawer.Alignment, out var list) == false)
-                list = _drawers[drawer.Alignment] = new List<IDrawer>();
+            if (_drawers.Contains(drawer))
+                return;
+
+            _drawers.Add(drawer);
+
+            if (_drawerAlignmentMap.TryGetValue(drawer.Alignment, out var list) == false)
+                list = _drawerAlignmentMap[drawer.Alignment] = new List<IDrawer>();
 
             list.Add(drawer);
             list.Sort(CompareDrawerPriority);
@@ -92,18 +120,40 @@ namespace EditorAddons.Editor
             {
                 return y.Priority.CompareTo(x.Priority);
             }
+
+            UpdateEventListenerRegistration();
         }
 
         public static void UnregisterDrawer(IDrawer drawer)
         {
-            if (_drawers.TryGetValue(drawer.Alignment, out var list) == false)
+            if (_drawers.Remove(drawer) == false)
+                return;
+
+            if (_drawerAlignmentMap.TryGetValue(drawer.Alignment, out var list) == false)
                 return;
 
             list.Remove(drawer);
+
+            UpdateEventListenerRegistration();
         }
 
-        /*
-        private void RegisterDebugDrawers()
+        private static void UpdateEventListenerRegistration()
+        {
+            if (_drawers.Count > 0 && _hasRegisteredListener == false)
+            {
+                EditorApplication.hierarchyWindowItemOnGUI += EditorApplication_hierarchyWindowItemOnGUI;
+                _hasRegisteredListener = true;
+                return;
+            }
+
+            if (_drawers.Count == 0 && _hasRegisteredListener == true)
+            {
+                EditorApplication.hierarchyWindowItemOnGUI -= EditorApplication_hierarchyWindowItemOnGUI;
+                _hasRegisteredListener = false;
+            }
+        }
+
+        private static void RegisterDebugDrawers()
         {
             RegisterDrawer(new DebugDrawer
             {
@@ -131,24 +181,30 @@ namespace EditorAddons.Editor
                 Alignment = DrawerAlignment.Left,
                 Color = Color.green
             });
+            RegisterDrawer(new DebugDrawer
+            {
+                Alignment = DrawerAlignment.Left,
+                Color = Color.blue
+            });
         }
         
         private class DebugDrawer : IDrawer
         {
             public DrawerAlignment Alignment { get; set; }
             public int Priority { get; set; }
-            public float Size { get; set; } = 15;
+            public float MinWidth { get; set; } = DefaultIconWidth;
             public Color Color { get; set; } = Color.magenta;
 
-            public void Draw(Rect rect, GameObject go)
+            public Rect Draw(Rect rect, GameObject go)
             {
                 var tmpColor = GUI.color;
                 GUI.color = Color;
                 GUI.Toggle(rect, false, GUIContent.none);
                 GUI.color = tmpColor;
+
+                return rect;
             }
         }
-        */
 
         /*
         static Dictionary<int, int> _hoverStartTimeMap = new Dictionary<int, int>();
