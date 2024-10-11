@@ -1,7 +1,8 @@
 ﻿#if UNITY_EDITOR
+using UnityEngine;
+#if EDITORADDONS_SERIALIZABLESETTINGS
 using SerializableSettings;
 using SerializableSettings.Editor;
-using UnityEngine;
 
 [EditorUserSettings("Hierarchy Icons ⁂")]
 public class HierarchyIconsSettings : SerializableSettings<HierarchyIconsSettings>
@@ -11,6 +12,12 @@ public class HierarchyIconsSettings : SerializableSettings<HierarchyIconsSetting
     // Access the settings via Edit/Preferences/... and via code: HierarchyIconsSettings.Instance.
     // These settings can be different on a per-user (or per-developer) basis. Think favourite editor color.
     // Please exclude the Assets/Settings/Editor/User/ folder in e.g. your .gitignore file.
+#else
+public class HierarchyIconsSettings : ScriptableObject
+{
+    private static HierarchyIconsSettings _instance;
+    public static HierarchyIconsSettings Instance => _instance ??= CreateInstance<HierarchyIconsSettings>();
+#endif
 
     [field: Header("Default drawers")]
     [field: SerializeField]

@@ -29,7 +29,9 @@ namespace EditorAddons.Editor
 
         static HierarchyIcons()
         {
+#if EDITORADDONS_SERIALIZABLESETTINGS
             HierarchyIconsSettings.Instance.Changed += ApplySettings;
+#endif
             ApplySettings();
         }
 
