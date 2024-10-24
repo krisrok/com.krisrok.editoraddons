@@ -7,6 +7,7 @@ namespace EditorAddons.Editor
 {
     public static class PrefabTools
     {
+#if UNITY_2021_3_OR_NEWER // because of PrefabStageUtility
         [MenuItem("Tools/Prefabs/Revert Prefab Root Transform")]
         public static void RevertPrefabRootTransform()
         {
@@ -25,6 +26,7 @@ namespace EditorAddons.Editor
             var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
             return prefabStage != null;
         }
+#endif
 
         [MenuItem("Tools/Prefabs/Reimport all Prefabs")]
         private static void ReimportAllPrefabs()

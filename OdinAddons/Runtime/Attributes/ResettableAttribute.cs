@@ -30,12 +30,12 @@ namespace OdinAddons
                 {
                     if (cloneProperty == null)
                     {
-                        char pathSeparator = '.';
+                        string pathSeparator = ".";
                         var currentProperty = property;
                         var parentChain = new List<Type>();
                         var pathParts = property.Path.Split(pathSeparator);
-                        int i = 0;
-                        while (currentProperty.IsTreeRoot == false && cloneProperty == null)
+                        int i = pathParts.Length - 1;
+                        while (i > 0 && currentProperty.IsTreeRoot == false && cloneProperty == null)
                         {
                             var parentType = currentProperty.ParentType;
                             currentProperty = currentProperty.Parent;
@@ -43,8 +43,9 @@ namespace OdinAddons
                             var parentCloneObj = Activator.CreateInstance(parentType);
                             var parentCloneTree = PropertyTree.Create(parentCloneObj);
 
-                            var path = string.Join(pathSeparator, pathParts.TakeLast(++i));
+                            var path = string.Join(pathSeparator, pathParts.Skip(i));
                             cloneProperty = parentCloneTree.GetPropertyAtPath(path);
+                            i--;
                         }
                     }
 

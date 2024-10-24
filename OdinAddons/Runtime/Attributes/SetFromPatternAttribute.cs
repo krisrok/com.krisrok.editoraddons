@@ -34,6 +34,24 @@ namespace OdinAddons
     { }
 
 #if UNITY_EDITOR
+
+#if !NETSTANDARD2_1 && !NET_STANDARD_2_1
+    public static class StringExtensions
+    {
+        public static string[] Split(this string value, string separator)
+        {
+            var result = new List<string>();
+            int index;
+            while ((index = value.IndexOf(separator)) != -1)
+            {
+                result.Add(value.Substring(0, index));
+                value = value.Substring(index + separator.Length);
+            }
+            return result.ToArray();
+        }
+    }
+#endif
+
     public class SetFromPatternTools
     {
         public static string TransformPattern(string input, GameObject context)
@@ -69,7 +87,12 @@ namespace OdinAddons
             if (match.Success == false)
                 throw new ArgumentException($"Regex pattern ({pattern}) does not match input ({input})");
 
-            return match.Groups.Skip(1).Select(g => g.Value);
+#if !NETSTANDARD2_1 && !NET_STANDARD_2_1
+            var groups = match.Groups.Cast<Group>();
+#else
+            var groups = match.Groups;
+#endif
+            return groups.Skip(1).Select(g => g.Value);
         }
 
         private static string FormatCaptures(IEnumerable<string> inputs, string format)
@@ -121,7 +144,7 @@ namespace OdinAddons
         };
     }
 #endif
-}
+            }
 
 #if UNITY_EDITOR
 namespace OdinAddons.Drawers
