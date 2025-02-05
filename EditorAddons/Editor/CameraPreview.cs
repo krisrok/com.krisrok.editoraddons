@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if ODIN_INSPECTOR
+using UnityEngine;
 using UnityEditor;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.OdinInspector;
@@ -139,3 +140,4 @@ namespace EditorAddons.Editor
         }
     }
 }
+#endif
