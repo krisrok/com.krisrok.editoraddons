@@ -121,16 +121,19 @@ namespace EditorAddons.Editor
                     gameObject?.GetComponents(comps);
                     foreach(var c in comps)
                     {
-                        instanceId = c.GetInstanceID();
-                        if (IsEqual(guidString, instanceId))
+                        if (c != null)
                         {
-                            yield return provider.CreateItem(context, r.id, instanceId.ToString().CompareTo(guidString),
-                                r.GetLabel(innerContext, true), ObjectNames.NicifyVariableName(c.GetType().Name),
-                                r.GetThumbnail(context, true), c);
-                        }
-                        else
-                        {
-                            yield return null;
+                            instanceId = c.GetInstanceID();
+                            if (IsEqual(guidString, instanceId))
+                            {
+                                yield return provider.CreateItem(context, r.id, instanceId.ToString().CompareTo(guidString),
+                                    r.GetLabel(innerContext, true), ObjectNames.NicifyVariableName(c.GetType().Name),
+                                    r.GetThumbnail(context, true), c);
+                            }
+                            else
+                            {
+                                yield return null;
+                            }
                         }
                     }
                 }
