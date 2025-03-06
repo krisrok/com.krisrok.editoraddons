@@ -5,32 +5,54 @@ namespace EditorAddons.Editor
 {
     class CameraPreview : EditorWindow
     {
-
-        //[ShowInInspector]
+        [SerializeField]
         private bool _autoSelectCamera = true;
 
-        //[ShowInInspector]
-        //[DisableIf(nameof(_autoSelectCamera))]
+        [SerializeField]
         private Camera _camera;
 
+        [SerializeField]
+        private bool _followGameViewResolution = true;
+
+        [SerializeField]
         private Texture _overlayTexture;
+
+        [SerializeField]
         private float _overlayAlpha = 1;
 
         private bool _isVisible;
         private RenderTexture _renderTexture;
+        private Rect _cameraImageRect;
+
+        private SerializedObject _serializedObject;
+        private SerializedProperty _autoSelectCameraProperty;
+        private SerializedProperty _cameraProperty;
+        private SerializedProperty _overlayTextureProperty;
+        private SerializedProperty _overlayAlphaProperty;
+        private SerializedProperty _followGameViewResolutionProperty;
 
         [MenuItem("Tools/Camera Preview")]
         static void OpenWindow()
         {
             var editorWindow = GetWindow<CameraPreview>(typeof(CameraPreview));
-            //editorWindow.autoRepaintOnSceneChange = true;
-            editorWindow.titleContent = new GUIContent("Camera Preview");
             editorWindow.Show();
         }
 
-        void Awake()
+        void OnEnable()
         {
+            titleContent = new GUIContent("Camera Preview");
+
+            _serializedObject = new SerializedObject(this);
+            
+            _autoSelectCameraProperty = _serializedObject.FindProperty(nameof(_autoSelectCamera));
+            _cameraProperty = _serializedObject.FindProperty(nameof(_camera));
+            _overlayTextureProperty = _serializedObject.FindProperty(nameof(_overlayTexture));
+            _overlayAlphaProperty = _serializedObject.FindProperty(nameof(_overlayAlpha));
+            _followGameViewResolutionProperty = _serializedObject.FindProperty(nameof(_followGameViewResolution));
+
+            //_cameraProperty.objectReferenceValue = Camera.main;
             _camera = Camera.main;
+            _serializedObject.Update();
         }
 
         void Update()
@@ -38,6 +60,9 @@ namespace EditorAddons.Editor
             if (_camera != null && _isVisible)
             {
                 EnsureRenderTexture();
+
+                if (_renderTexture == null)
+                    return;
 
                 _camera.renderingPath = RenderingPath.UsePlayerSettings;
                 var tmpTexture = _camera.targetTexture;
@@ -80,76 +105,96 @@ namespace EditorAddons.Editor
                 return;
 
             _camera = cam;
+            _serializedObject.Update();
         }
 
         private void OnDestroy()
         {
-            if (_renderTexture == null)
-                return;
+            _serializedObject.Dispose();
+            _autoSelectCameraProperty.Dispose();
+            _cameraProperty.Dispose();
+            _overlayTextureProperty.Dispose();
+            _overlayAlphaProperty.Dispose();
 
-            DestroyImmediate(_renderTexture);
+            if (_renderTexture != null)
+            {
+                DestroyImmediate(_renderTexture);
+            }
         }
-
-        //protected override void OnDestroy()
-        //{
-        //    base.OnDestroy();
-
-        //    if (_renderTexture == null)
-        //        return;
-
-        //    DestroyImmediate(_renderTexture);
-        //}
 
         void EnsureRenderTexture()
         {
-            var res = GetGameViewResolution();
+            var res = GetRenderResolution();
 
             if (_renderTexture == null
                 || res.x != _renderTexture.width
                 || res.y != _renderTexture.height)
             {
+                if (res.x == 0 || res.y == 0)
+                    return;
+
                 _renderTexture = new RenderTexture(res.x, res.y, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
             }
         }
 
-        Vector2Int GetGameViewResolution()
+        Vector2Int GetRenderResolution()
         {
-            var parts = UnityStats.screenRes.Split(new[] { 'x' });
-            var width = int.Parse(parts[0]);
-            var height = int.Parse(parts[1]);
+            int width = 0;
+            int height = 0;
+
+            if (_followGameViewResolution)
+            {
+                var parts = UnityStats.screenRes.Split(new[] { 'x' });
+                width = int.Parse(parts[0]);
+                height = int.Parse(parts[1]);
+            }
+
+            if (width == 0 || height == 0)
+            {
+                width = (int)_cameraImageRect.width;
+                height = (int)_cameraImageRect.height;
+            }
 
             return new Vector2Int(width, height);
         }
 
-        private static GUIContent _autoSelectCameraLabel = new GUIContent("Auto select camera");
-        private static GUIContent _cameraLabel = new GUIContent("Camera");
-        private static GUIContent _overlayTextureLabel = new GUIContent("Overlay texture");
-        private static GUIContent _overlayAlphaLabel = new GUIContent("Overlay alpha");
-
         private void OnGUI()
         {
-            _autoSelectCamera = EditorGUILayout.Toggle(_autoSelectCameraLabel, _autoSelectCamera);
+            EditorGUI.BeginChangeCheck();
+
+            EditorGUILayout.PropertyField(_autoSelectCameraProperty);
+            
             EditorGUI.BeginDisabledGroup(_autoSelectCamera);
-            _camera = EditorGUILayout.ObjectField(_cameraLabel, _camera, typeof(Camera), allowSceneObjects: true) as Camera;
+            EditorGUILayout.ObjectField(_cameraProperty);
             EditorGUI.EndDisabledGroup();
 
-            _overlayTexture = EditorGUILayout.ObjectField(_overlayTextureLabel, _overlayTexture, typeof(Texture), allowSceneObjects: false) as Texture;
-            if(_overlayTexture != null)
-            {
-                _overlayAlpha = EditorGUILayout.Slider(_overlayAlphaLabel, _overlayAlpha, 0f, 1f);
-            }
+            EditorGUILayout.PropertyField(_followGameViewResolutionProperty);
 
-            var position = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+            EditorGUILayout.ObjectField(_overlayTextureProperty, GUILayout.MaxHeight(EditorGUIUtility.singleLineHeight));
+            if (_overlayTexture != null)
+            {
+                EditorGUILayout.Slider(_overlayAlphaProperty, 0f, 1f);
+            }
+            
+            if (EditorGUI.EndChangeCheck())
+                _serializedObject.ApplyModifiedProperties();
+
+            DrawCameraImage();
+        }
+
+        private void DrawCameraImage()
+        {
+            _cameraImageRect = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             EditorGUILayout.EndVertical();
 
-            var res = GetGameViewResolution();
+            var res = GetRenderResolution();
 
             var rRatio = (float)res.x / res.y;
-            var pRatio = position.width / position.height;
+            var pRatio = _cameraImageRect.width / _cameraImageRect.height;
 
             var scale = new Vector2(pRatio > rRatio ? rRatio / pRatio : 1, pRatio > rRatio ? 1 : pRatio / rRatio);
 
-            var rect = new Rect((1 - scale.x) * 0.5f * position.width + position.xMin, (1 - scale.y) * 0.5f * position.height + position.yMin, position.width * scale.x, position.height * scale.y);
+            var rect = new Rect((1 - scale.x) * 0.5f * _cameraImageRect.width + _cameraImageRect.xMin, (1 - scale.y) * 0.5f * _cameraImageRect.height + _cameraImageRect.yMin, _cameraImageRect.width * scale.x, _cameraImageRect.height * scale.y);
 
             if (_renderTexture != null)
                 GUI.DrawTexture(rect, _renderTexture);
@@ -157,27 +202,5 @@ namespace EditorAddons.Editor
             if (_overlayTexture != null)
                 GUI.DrawTexture(rect, _overlayTexture, ScaleMode.StretchToFill, alphaBlend: true, imageAspect: 0, color: new Color(1, 1, 1, _overlayAlpha), borderWidth: 0, borderRadius: 0);
         }
-        //protected override void OnEndDrawEditors()
-        //{
-        //    base.OnEndDrawEditors();
-
-        //    var position = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
-        //    EditorGUILayout.EndVertical();
-
-        //    var res = GetGameViewResolution();
-
-        //    var rRatio = (float)res.x / res.y;
-        //    var pRatio = position.width / position.height;
-
-        //    var scale = new Vector2(pRatio > rRatio ? rRatio / pRatio : 1, pRatio > rRatio ? 1 : pRatio / rRatio);
-
-        //    var rect = new Rect((1 - scale.x) * 0.5f * position.width + position.xMin, (1 - scale.y) * 0.5f * position.height + position.yMin, position.width * scale.x, position.height * scale.y);
-
-        //    if (_renderTexture != null)
-        //        GUI.DrawTexture(rect, _renderTexture);
-
-        //    if (_overlayTexture != null)
-        //        GUI.DrawTexture(rect, _overlayTexture);
-        //}
     }
 }
