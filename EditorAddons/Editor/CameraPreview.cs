@@ -1,23 +1,20 @@
-﻿#if ODIN_INSPECTOR
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
-using Sirenix.OdinInspector.Editor;
-using Sirenix.OdinInspector;
 
 namespace EditorAddons.Editor
 {
-    class CameraPreview : OdinEditorWindow
+    class CameraPreview : EditorWindow
     {
 
-        [ShowInInspector]
+        //[ShowInInspector]
         private bool _autoSelectCamera = true;
 
-        [ShowInInspector]
-        [DisableIf(nameof(_autoSelectCamera))]
+        //[ShowInInspector]
+        //[DisableIf(nameof(_autoSelectCamera))]
         private Camera _camera;
 
-        [SerializeField]
         private Texture _overlayTexture;
+        private float _overlayAlpha = 1;
 
         private bool _isVisible;
         private RenderTexture _renderTexture;
@@ -85,15 +82,23 @@ namespace EditorAddons.Editor
             _camera = cam;
         }
 
-        protected override void OnDestroy()
+        private void OnDestroy()
         {
-            base.OnDestroy();
-
             if (_renderTexture == null)
                 return;
 
             DestroyImmediate(_renderTexture);
         }
+
+        //protected override void OnDestroy()
+        //{
+        //    base.OnDestroy();
+
+        //    if (_renderTexture == null)
+        //        return;
+
+        //    DestroyImmediate(_renderTexture);
+        //}
 
         void EnsureRenderTexture()
         {
@@ -116,9 +121,23 @@ namespace EditorAddons.Editor
             return new Vector2Int(width, height);
         }
 
-        protected override void OnEndDrawEditors()
+        private static GUIContent _autoSelectCameraLabel = new GUIContent("Auto select camera");
+        private static GUIContent _cameraLabel = new GUIContent("Camera");
+        private static GUIContent _overlayTextureLabel = new GUIContent("Overlay texture");
+        private static GUIContent _overlayAlphaLabel = new GUIContent("Overlay alpha");
+
+        private void OnGUI()
         {
-            base.OnEndDrawEditors();
+            _autoSelectCamera = EditorGUILayout.Toggle(_autoSelectCameraLabel, _autoSelectCamera);
+            EditorGUI.BeginDisabledGroup(_autoSelectCamera);
+            _camera = EditorGUILayout.ObjectField(_cameraLabel, _camera, typeof(Camera), allowSceneObjects: true) as Camera;
+            EditorGUI.EndDisabledGroup();
+
+            _overlayTexture = EditorGUILayout.ObjectField(_overlayTextureLabel, _overlayTexture, typeof(Texture), allowSceneObjects: false) as Texture;
+            if(_overlayTexture != null)
+            {
+                _overlayAlpha = EditorGUILayout.Slider(_overlayAlphaLabel, _overlayAlpha, 0f, 1f);
+            }
 
             var position = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
             EditorGUILayout.EndVertical();
@@ -136,8 +155,29 @@ namespace EditorAddons.Editor
                 GUI.DrawTexture(rect, _renderTexture);
 
             if (_overlayTexture != null)
-                GUI.DrawTexture(rect, _overlayTexture);
+                GUI.DrawTexture(rect, _overlayTexture, ScaleMode.StretchToFill, alphaBlend: true, imageAspect: 0, color: new Color(1, 1, 1, _overlayAlpha), borderWidth: 0, borderRadius: 0);
         }
+        //protected override void OnEndDrawEditors()
+        //{
+        //    base.OnEndDrawEditors();
+
+        //    var position = EditorGUILayout.BeginVertical(GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+        //    EditorGUILayout.EndVertical();
+
+        //    var res = GetGameViewResolution();
+
+        //    var rRatio = (float)res.x / res.y;
+        //    var pRatio = position.width / position.height;
+
+        //    var scale = new Vector2(pRatio > rRatio ? rRatio / pRatio : 1, pRatio > rRatio ? 1 : pRatio / rRatio);
+
+        //    var rect = new Rect((1 - scale.x) * 0.5f * position.width + position.xMin, (1 - scale.y) * 0.5f * position.height + position.yMin, position.width * scale.x, position.height * scale.y);
+
+        //    if (_renderTexture != null)
+        //        GUI.DrawTexture(rect, _renderTexture);
+
+        //    if (_overlayTexture != null)
+        //        GUI.DrawTexture(rect, _overlayTexture);
+        //}
     }
 }
-#endif
